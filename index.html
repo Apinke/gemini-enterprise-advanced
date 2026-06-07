@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini Enterprise: Advanced Architecture — Advanced</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--panel:#060E1A;--border:rgba(66,133,244,0.15);
+  --g1:#4285F4;--g2:#0F9D58;--g3:#F4B400;--g4:#DB4437;--gp:#AB47BC;
+  --text:#CBD5E1;--dim:#475569;--bright:#F1F5F9;}
+body{background:var(--bg);font-family:'JetBrains Mono',monospace;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  background-image:radial-gradient(ellipse at 20% 20%,rgba(66,133,244,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 80%,rgba(15,157,88,0.03) 0%,transparent 50%);}
+.hdr{width:100%;padding:14px 20px;text-align:center;
+  background:linear-gradient(135deg,rgba(66,133,244,0.08),rgba(15,157,88,0.04));
+  border-bottom:1px solid var(--border);position:relative;}
+.hdr::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--g1),var(--g2),var(--g3),var(--g4));}
+.hdr h1{font-family:'Exo 2',sans-serif;font-size:1.3rem;font-weight:900;
+  background:linear-gradient(135deg,var(--g1),var(--g2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+.hdr p{font-size:0.7rem;color:var(--dim);margin-top:3px;}
+.level-badge{display:inline-block;margin-top:5px;padding:2px 10px;
+  background:linear-gradient(135deg,rgba(66,133,244,0.15),rgba(15,157,88,0.08));
+  border:1px solid rgba(66,133,244,0.3);border-radius:2px;
+  font-size:0.65rem;color:var(--g1);letter-spacing:2px;}
+.prog-wrap{width:100%;max-width:620px;padding:7px 16px;display:flex;align-items:center;gap:10px;}
+.prog-bar{flex:1;height:2px;background:rgba(255,255,255,0.05);}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--g1),var(--g2),var(--g3),var(--g4));transition:width 0.4s;}
+.prog-txt{font-size:0.65rem;color:var(--dim);white-space:nowrap;}
+.comic-wrap{width:100%;max-width:620px;padding:8px 16px;flex:1;}
+.book{width:100%;perspective:1600px;}
+.page{display:none;width:100%;}
+.page.active{display:block;}
+.page-inner{position:relative;width:100%;transform-style:preserve-3d;transition:transform 0.7s cubic-bezier(0.77,0,0.175,1);}
+.page-inner.flipped{transform:rotateY(-180deg);}
+.page-front,.page-back{width:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:4px;border:1px solid var(--border);overflow:hidden;
+  box-shadow:0 0 60px rgba(66,133,244,0.06),0 30px 80px rgba(0,0,0,0.7);}
+.page-back{position:absolute;top:0;left:0;transform:rotateY(180deg);
+  background:linear-gradient(160deg,#060E1A,#020408);
+  display:flex;align-items:center;justify-content:center;min-height:380px;}
+.comic-page{background:var(--panel);}
+.ch-header{padding:9px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,rgba(66,133,244,0.05),transparent);}
+.ch-num{font-size:0.58rem;color:var(--g1);letter-spacing:2px;font-weight:700;}
+.ch-title{font-family:'Exo 2',sans-serif;font-size:0.82rem;font-weight:700;color:var(--bright);letter-spacing:1px;}
+.ch-icon{font-size:1.1rem;}
+.panel{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.025);position:relative;}
+.panel:last-child{border-bottom:none;}
+.pl1{border-left:2px solid var(--g1)}.pl2{border-left:2px solid var(--g2)}
+.pl3{border-left:2px solid var(--g3)}.pl4{border-left:2px solid var(--g4)}
+.plp{border-left:2px solid var(--gp)}
+.narr{font-size:0.65rem;color:var(--dim);margin-bottom:6px;font-style:italic;}
+.speak{display:flex;gap:8px;align-items:flex-start;margin-bottom:5px;}
+.av{font-size:1.6rem;flex-shrink:0;line-height:1;}
+.bubble{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
+  border-radius:5px;padding:7px 10px;font-size:0.78rem;color:var(--text);line-height:1.5;flex:1;}
+.bubble.g1{border-color:rgba(66,133,244,0.3);background:rgba(66,133,244,0.04);}
+.bubble.g2{border-color:rgba(15,157,88,0.3);background:rgba(15,157,88,0.04);}
+pre.code{background:#000;border:1px solid rgba(66,133,244,0.2);border-radius:3px;
+  padding:8px 10px;font-size:0.66rem;color:#a5f3fc;line-height:1.65;
+  overflow-x:auto;white-space:pre;margin:5px 0;}
+.cc{color:var(--dim)}.cb{color:var(--g4)}.cg{color:var(--g2)}
+.cy{color:var(--g3)}.cv{color:#A855F7}.cw{color:var(--bright)}
+.tbl{width:100%;border-collapse:collapse;margin:5px 0;font-size:0.68rem;}
+.tbl th{background:rgba(66,133,244,0.08);color:var(--g1);padding:4px 7px;text-align:left;
+  border-bottom:1px solid var(--border);font-size:0.58rem;letter-spacing:1px;}
+.tbl td{padding:4px 7px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.025);}
+.ok{color:var(--g2)}.ng{color:var(--g4)}.wr{color:var(--g3)}
+.tag{display:inline-block;padding:1px 6px;border-radius:2px;font-size:0.6rem;margin:2px;}
+.tg1{background:rgba(66,133,244,0.08);color:var(--g1);border:1px solid rgba(66,133,244,0.18);}
+.tg2{background:rgba(15,157,88,0.08);color:var(--g2);border:1px solid rgba(15,157,88,0.18);}
+.tg3{background:rgba(244,180,0,0.08);color:var(--g3);border:1px solid rgba(244,180,0,0.18);}
+.tg4{background:rgba(219,68,55,0.08);color:var(--g4);border:1px solid rgba(219,68,55,0.18);}
+.tgp{background:rgba(171,71,188,0.08);color:var(--gp);border:1px solid rgba(171,71,188,0.18);}
+.back-content{padding:20px 18px;width:100%;}
+.bch{font-size:0.58rem;color:var(--g1);letter-spacing:3px;margin-bottom:5px;}
+.bttl{font-family:'Exo 2',sans-serif;font-size:1rem;font-weight:900;color:var(--bright);margin-bottom:14px;
+  background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.bpts{display:flex;flex-direction:column;gap:7px;}
+.bpt{background:rgba(255,255,255,0.02);border-left:2px solid var(--g1);padding:8px 11px;border-radius:0 3px 3px 0;font-size:0.78rem;color:var(--text);line-height:1.5;}
+.bpt strong{color:var(--g3);}
+.controls{display:flex;align-items:center;gap:7px;width:100%;max-width:620px;padding:0 16px 12px;flex-wrap:wrap;justify-content:center;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;cursor:pointer;transition:all 0.15s;border-radius:2px;letter-spacing:1px;}
+.bn{background:transparent;color:var(--g1);border:1px solid rgba(66,133,244,0.35);flex:1;min-width:75px;justify-content:center;}
+.bn:hover:not(:disabled){background:rgba(66,133,244,0.08);}
+.bn:disabled{opacity:0.18;cursor:not-allowed;}
+.bf{background:transparent;color:var(--g2);border:1px solid rgba(15,157,88,0.35);flex:1;min-width:75px;justify-content:center;}
+.bf:hover{background:rgba(15,157,88,0.06);}
+.bt{background:transparent;color:var(--g3);border:1px solid rgba(244,180,0,0.25);}
+.bt:hover{background:rgba(244,180,0,0.05);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:200;align-items:center;justify-content:center;padding:14px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:18px 16px;max-width:430px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 0 80px rgba(66,133,244,0.1);}
+.modal h2{font-family:'Exo 2',sans-serif;font-size:0.82rem;color:var(--g1);text-align:center;letter-spacing:2px;margin-bottom:12px;}
+.ti{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:3px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);}
+.ti:hover{background:rgba(66,133,244,0.05);}
+.tn{width:24px;height:24px;background:rgba(66,133,244,0.08);border:1px solid var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:0.62rem;color:var(--g1);flex-shrink:0;}
+.tc{font-size:0.58rem;color:var(--g1);letter-spacing:1px;}
+.ts{font-size:0.78rem;color:var(--text);font-weight:600;}
+.mc{width:100%;margin-top:10px;background:transparent;color:var(--dim);border:1px solid var(--border);border-radius:2px;padding:7px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:1px;}
+.hint{font-size:0.62rem;color:var(--dim);text-align:center;padding:0 16px 8px;}
+.footer{width:100%;text-align:center;padding:9px;font-size:0.6rem;color:var(--dim);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>GEMINI ENTERPRISE: ADVANCED ARCHITECTURE</h1>
+  <p>Production Engineering · Security Hardening · Multi-Agent Systems · LLMOps</p>
+  <div class="level-badge">◈◈◈ ADVANCED LEVEL</div>
+</div>
+<div class="prog-wrap">
+  <div class="prog-bar"><div class="prog-fill" id="pFill" style="width:7.14%"></div></div>
+  <div class="prog-txt" id="pTxt">01/14</div>
+</div>
+<div class="comic-wrap"><div class="book" id="book">
+
+<!-- PAGE 1 -->
+<div class="page active"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🏗️</span><div><div class="ch-num">ADV.01</div><div class="ch-title">PRODUCTION-GRADE AGENTIC ARCHITECTURE</div></div></div>
+  <div class="panel pl1">
+    <div class="narr">// Complete reference architecture for enterprise agent deployment</div>
+    <pre class="code"><span class="cc">// Layer 1: Ingress & Orchestration</span>
+user_request
+  → API_Gateway (auth + rate_limit + logging)
+  → Orchestrator_Agent (planning + routing)
+  → [Worker_Agents] (parallel/sequential)
+  → Result_Synthesiser
+  → Response (with citations + audit_ref)
+
+<span class="cc">// Layer 2: Platform Services</span>
+Agent_Engine     <span class="cc">// managed runtime + state</span>
+Agent_Registry   <span class="cc">// catalogue + discovery</span>
+Agent_Gateway    <span class="cc">// policy enforcement</span>
+RAG_Engine       <span class="cc">// retrieval + grounding</span>
+Memory_Store     <span class="cc">// session + long-term</span>
+
+<span class="cc">// Layer 3: Data Plane</span>
+BigQuery         <span class="cc">// structured analytics</span>
+Vertex_AI_Search <span class="cc">// unstructured docs</span>
+Vector_Search    <span class="cc">// semantic retrieval</span>
+AlloyDB          <span class="cc">// operational + vector</span>
+
+<span class="cc">// Layer 4: Observability</span>
+Cloud_Trace + Cloud_Logging + Cloud_Monitoring
+Custom_Agent_Metrics → SLO_Dashboards</pre>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.01</div><div class="bttl">Reference Architecture</div>
+  <div class="bpts">
+    <div class="bpt"><strong>API Gateway as entry point:</strong> All agent requests pass through Cloud Endpoints or Apigee for authentication, rate limiting, and request logging before reaching any agent.</div>
+    <div class="bpt"><strong>Separation of concerns:</strong> Orchestrator agents handle planning and routing only; worker agents handle execution. This enables independent scaling and testing of each layer.</div>
+    <div class="bpt"><strong>Observability-first:</strong> Instrument every agent with Cloud Trace for distributed tracing. Custom metrics for agent-specific KPIs: task completion rate, tool call latency, token efficiency.</div>
+    <div class="bpt"><strong>AlloyDB for hybrid workloads:</strong> AlloyDB supports both PostgreSQL operational data and pgvector semantic search in a single managed database — reducing infrastructure complexity for RAG pipelines.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 2 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">⚙️</span><div><div class="ch-num">ADV.02</div><div class="ch-title">ADVANCED ADK PATTERNS</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Custom callback architecture for cross-cutting concerns</div>
+    <pre class="code"><span class="cc"># Production ADK agent with callbacks</span>
+from google.adk.agents import Agent, CallbackContext
+from google.adk.tools.tool_context import ToolContext
+
+class ProductionAgent(Agent):
+    
+    def before_model_callback(
+        self, callback_context: CallbackContext
+    ) -> Optional[types.Content]:
+        <span class="cc"># Inject dynamic context, PII scrub, rate check</span>
+        self._scrub_pii(callback_context.state)
+        self._check_rate_limits(callback_context.state)
+        self._inject_org_context(callback_context)
+        return None  <span class="cc"># None = proceed normally</span>
+    
+    def after_tool_callback(
+        self, tool: BaseTool, 
+        tool_response: dict,
+        tool_context: ToolContext
+    ) -> Optional[dict]:
+        <span class="cc"># Validate tool output, log, transform</span>
+        validated = self._validate_schema(tool_response)
+        self._log_tool_call(tool.name, tool_response)
+        return validated</pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Custom planners for deterministic workflows:</div>
+    <pre class="code"><span class="cc"># Override LLM planning with rule-based planner</span>
+class CompliancePlanner(BasePlanner):
+    REQUIRED_STEPS = ["fetch","validate","approve","execute"]
+    
+    def plan(self, goal, context) -> List[Step]:
+        <span class="cc"># Enforce fixed step order for regulated tasks</span>
+        return [Step(s) for s in self.REQUIRED_STEPS]</pre>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.02</div><div class="bttl">Advanced ADK Patterns</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Callbacks:</strong> before_model, after_model, before_tool, after_tool hooks enable cross-cutting concerns (PII scrubbing, rate limiting, logging) without modifying agent logic.</div>
+    <div class="bpt"><strong>Custom planners:</strong> Replace the LLM planner with deterministic rule-based planners for regulated workflows where step order must be guaranteed regardless of model output.</div>
+    <div class="bpt"><strong>State management:</strong> ADK's CallbackContext.state provides typed, scoped state that persists across agent steps within a session. Use for accumulating context, tracking approvals.</div>
+    <div class="bpt"><strong>Tool context:</strong> ToolContext gives tools access to session state, enabling tools to read and write shared context — critical for multi-step workflows where tools depend on each other's outputs.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 3 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🔐</span><div><div class="ch-num">ADV.03</div><div class="ch-title">ZERO TRUST SECURITY FOR AGENT SYSTEMS</div></div></div>
+  <div class="panel plp">
+    <div class="narr">// Agent identity and access — principle of least privilege at agent granularity</div>
+    <pre class="code"><span class="cc"># Workload Identity Federation for agents</span>
+<span class="cc"># No long-lived credentials — short-lived tokens only</span>
+
+resource "google_service_account" "agent_sa" {
+  account_id   = "gemini-agent-${var.agent_name}"
+  display_name = "Agent: ${var.agent_description}"
+}
+
+<span class="cc"># Custom IAM role — minimal permissions</span>
+resource "google_project_iam_custom_role" "agent_role" {
+  role_id = "geminiAgent${var.agent_name}"
+  permissions = var.agent_permissions  <span class="cc"># defined per-agent</span>
+}
+
+<span class="cc"># VPC Service Controls — data exfiltration prevention</span>
+resource "google_access_context_manager_service_perimeter" {
+  spec {
+    restricted_services = ["aiplatform.googleapis.com"]
+    vpc_accessible_services {
+      enable_restriction = true
+      allowed_services   = ["RESTRICTED-SERVICES"]
+    }
+  }
+}</pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Agent threat model — what can go wrong:</div>
+    <table class="tbl">
+      <tr><th>THREAT</th><th>MITIGATION</th></tr>
+      <tr><td>Prompt injection</td><td>Input validation + system prompt hardening</td></tr>
+      <tr><td>Data exfiltration</td><td>VPC-SC + output filtering + DLP</td></tr>
+      <tr><td>Privilege escalation</td><td>IAM least-privilege + no self-modification</td></tr>
+      <tr><td>Hallucinated actions</td><td>Tool schema validation + human approval</td></tr>
+      <tr><td>Supply chain</td><td>Signed container images + dependency scanning</td></tr>
+    </table>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.03</div><div class="bttl">Zero Trust Architecture</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Workload Identity Federation:</strong> Agents never use static service account keys. They exchange short-lived OIDC tokens for Google Cloud credentials. No credential leakage risk from key files.</div>
+    <div class="bpt"><strong>Prompt injection defence:</strong> Validate all inputs against a schema before passing to the model. Separate system prompts from user input at the API level. Monitor for injection signatures in logs.</div>
+    <div class="bpt"><strong>DLP integration:</strong> Route all agent outputs through Cloud DLP before delivery. Automatically redact or block PII, credentials, or confidential data patterns in agent responses.</div>
+    <div class="bpt"><strong>Blast radius containment:</strong> Each agent has its own service account, its own IAM role, its own resource labels. Compromise of one agent cannot access another agent's data or permissions.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 4 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🧬</span><div><div class="ch-num">ADV.04</div><div class="ch-title">ADVANCED RAG ARCHITECTURES</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Beyond naive RAG — production retrieval patterns</div>
+    <pre class="code"><span class="cc"># Pattern 1: Hybrid Search (dense + sparse)</span>
+from vertexai.preview.generative_models import grounding
+
+retriever = HybridRetriever(
+    dense_store=vertex_vector_search,   <span class="cc"># semantic</span>
+    sparse_store=elasticsearch_index,  <span class="cc"># keyword BM25</span>
+    alpha=0.7  <span class="cc"># weight: 70% semantic, 30% keyword</span>
+)
+
+<span class="cc"># Pattern 2: Self-querying (agent generates query)</span>
+class SelfQueryingAgent(Agent):
+    def retrieve(self, user_query: str) -> List[Doc]:
+        <span class="cc"># LLM generates optimal search query from user intent</span>
+        search_query = self.model.generate_search_query(
+            user_query, metadata_schema=self.schema)
+        return self.retriever.search(search_query)
+
+<span class="cc"># Pattern 3: RAPTOR (recursive abstractive processing)</span>
+<span class="cc"># Cluster docs → summarise clusters → build tree</span>
+<span class="cc"># Query at multiple abstraction levels simultaneously</span>
+raptor = RaptorIndex(docs, summariser=gemini_flash)
+results = raptor.query(query, levels=[0,1,2])</pre>
+  </div>
+  <div class="panel pl3">
+    <div class="narr">// Evaluation metrics for RAG quality:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">
+      <span class="tag tg1">Context Precision</span><span class="tag tg2">Context Recall</span>
+      <span class="tag tg3">Faithfulness</span><span class="tag tg4">Answer Relevance</span>
+      <span class="tag tgp">RAGAS Score</span>
+    </div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.04</div><div class="bttl">Advanced RAG</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Hybrid search:</strong> Dense (semantic) + sparse (BM25 keyword) retrieval combined with weighted fusion. Dense retrieval finds semantically related content; sparse retrieval finds exact keyword matches. Together outperform either alone.</div>
+    <div class="bpt"><strong>Self-querying:</strong> Instead of embedding the user's question directly, use an LLM to generate an optimised search query. Significantly improves retrieval precision for complex questions.</div>
+    <div class="bpt"><strong>RAPTOR:</strong> Recursively summarises document clusters at multiple levels of abstraction. Enables effective retrieval over very large corpora where individual chunks miss high-level context.</div>
+    <div class="bpt"><strong>RAGAS evaluation:</strong> Framework for measuring RAG quality across four dimensions. Integrate RAGAS into CI/CD — block deployments where RAG quality drops below threshold.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 5 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">📊</span><div><div class="ch-num">ADV.05</div><div class="ch-title">LLMOPS — EVALUATION AND CONTINUOUS IMPROVEMENT</div></div></div>
+  <div class="panel pl1">
+    <div class="narr">// Agent evaluation pipeline — prevent regressions</div>
+    <pre class="code"><span class="cc"># Vertex AI Gen AI Evaluation SDK</span>
+from vertexai.evaluation import EvalTask, MetricPromptTemplateExamples
+
+eval_dataset = [{
+    "prompt": "Summarise Q3 financials",
+    "reference": "Q3 revenue $2.3M, up 15% YoY...",
+    "response": agent.run("Summarise Q3 financials")
+}]
+
+eval_task = EvalTask(
+    dataset=eval_dataset,
+    metrics=[
+        "rouge_l_sum",           <span class="cc"># text similarity</span>
+        "groundedness",          <span class="cc"># factual accuracy</span>
+        "instruction_following", <span class="cc"># task completion</span>
+        MetricPromptTemplateExamples.Pointwise.COHERENCE,
+    ],
+    experiment="gemini-agent-eval-v2"
+)
+result = eval_task.evaluate()
+result.summary_metrics  <span class="cc"># fail CI if below threshold</span></pre>
+  </div>
+  <div class="panel pl3">
+    <div class="narr">// LLMOps maturity model:</div>
+    <table class="tbl">
+      <tr><th>LEVEL</th><th>CAPABILITY</th><th>TOOLING</th></tr>
+      <tr><td class="ng">L0: Manual</td><td>Ad-hoc testing</td><td>None</td></tr>
+      <tr><td class="wr">L1: Eval</td><td>Automated eval suite</td><td>Gen AI Eval SDK</td></tr>
+      <tr><td class="wr">L2: CI/CD</td><td>Eval in pipeline</td><td>Cloud Build + Eval</td></tr>
+      <tr><td class="ok">L3: Monitor</td><td>Production drift detection</td><td>Cloud Monitoring</td></tr>
+      <tr><td class="ok">L4: Auto</td><td>Auto-retrain on regression</td><td>Vertex Pipelines</td></tr>
+    </table>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.05</div><div class="bttl">LLMOps</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Evaluation SDK:</strong> Vertex AI Gen AI Evaluation SDK measures agent quality across multiple dimensions — groundedness, coherence, instruction following, and custom domain-specific metrics.</div>
+    <div class="bpt"><strong>CI/CD integration:</strong> Run eval suite on every agent code change. Gate deployments on quality threshold — refuse to deploy if groundedness drops below 0.8 or instruction following below 0.9.</div>
+    <div class="bpt"><strong>Production monitoring:</strong> Track distribution of agent outputs in production. Detect drift — when production inputs differ significantly from training/eval distribution, trigger re-evaluation.</div>
+    <div class="bpt"><strong>Experiment tracking:</strong> Vertex AI Experiments stores eval results for every model version. Compare model performance over time, identify regressions, correlate with business metrics.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 6 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🌐</span><div><div class="ch-num">ADV.06</div><div class="ch-title">MULTI-REGION AND HIGH AVAILABILITY</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Global agent deployment — latency and resilience</div>
+    <pre class="code"><span class="cc"># Multi-region Agent Engine deployment</span>
+regions = ["us-central1", "europe-west1", "me-central1"]
+
+for region in regions:
+    agent_engines.create(
+        agent=my_agent,
+        location=region,
+        display_name=f"agent-{region}"
+    )
+
+<span class="cc"># Global load balancer with latency-based routing</span>
+backend_service = {
+    "localityLbPolicy": "ROUND_ROBIN",
+    "backends": [
+        {"group": us_neg, "capacityScaler": 1.0},
+        {"group": eu_neg, "capacityScaler": 1.0},
+    ],
+    "circuitBreakers": {
+        "maxRequestsPerConnection": 100,
+        "maxRetries": 3
+    }
+}
+
+<span class="cc"># Failover: if primary region unhealthy → auto-route</span>
+<span class="cc"># RTO: <60s, RPO: 0 (stateless agent runtime)</span></pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// For Africa deployments — region considerations:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">
+      <span class="tag tg1">me-central1 (Doha) — lowest latency West Africa</span>
+      <span class="tag tg2">europe-west1 (Belgium) — GDPR/NDPA data residency</span>
+      <span class="tag tg3">us-central1 — fallback, most model availability</span>
+    </div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.06</div><div class="bttl">High Availability</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Agent Engine HA:</strong> Agent Engine is regionally managed but not globally. For true HA, deploy identical agents in multiple regions behind a Global Load Balancer with health check failover.</div>
+    <div class="bpt"><strong>Stateless agent design:</strong> Design agents to be stateless at the runtime level — state stored in Firestore/Redis, not in-process. Enables zero-RPO failover between regional instances.</div>
+    <div class="bpt"><strong>Circuit breakers:</strong> Configure Cloud Endpoints circuit breakers to fail fast and return graceful errors when backend agents are overwhelmed, rather than cascading failures.</div>
+    <div class="bpt"><strong>Africa latency:</strong> Google's me-central1 (Doha) provides the lowest latency for West Africa deployments (~60ms vs ~120ms for European regions). Critical for real-time agent interactions.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 7 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🧪</span><div><div class="ch-num">ADV.07</div><div class="ch-title">FINE-TUNING AND CUSTOM MODELS</div></div></div>
+  <div class="panel pl3">
+    <div class="narr">// When and how to fine-tune Gemini for enterprise domains</div>
+    <pre class="code"><span class="cc"># Supervised Fine-Tuning (SFT) on Vertex AI</span>
+from vertexai.preview.tuning import sft
+
+sft_job = sft.train(
+    source_model="gemini-3.5-flash-002",
+    train_dataset="gs://my-bucket/training_data.jsonl",
+    validation_dataset="gs://my-bucket/val_data.jsonl",
+    epochs=3,
+    learning_rate_multiplier=1.0,
+    tuned_model_display_name="gemini-legal-v1",
+)
+<span class="cc"># Training data format: {prompt, response} pairs</span>
+<span class="cc"># Min: 100 examples, Recommended: 1000+</span>
+
+<span class="cc"># When to fine-tune vs RAG vs prompt engineering:</span>
+<span class="cc"># RAG: domain knowledge, factual recall</span>
+<span class="cc"># Fine-tune: style/format/domain terminology</span>
+<span class="cc"># Both: complex domain-specific Q&A at scale</span></pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Fine-tuning decision framework:</div>
+    <table class="tbl">
+      <tr><th>NEED</th><th>APPROACH</th><th>COST</th></tr>
+      <tr><td>Domain facts</td><td>RAG only</td><td class="ok">Low</td></tr>
+      <tr><td>Custom format</td><td>Few-shot prompting</td><td class="ok">Low</td></tr>
+      <tr><td>Consistent style</td><td>SFT (100+ examples)</td><td class="wr">Medium</td></tr>
+      <tr><td>Domain terminology</td><td>SFT (1000+ examples)</td><td class="wr">Medium</td></tr>
+      <tr><td>Full domain mastery</td><td>SFT + RAG combined</td><td class="ng">High</td></tr>
+    </table>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.07</div><div class="bttl">Fine-Tuning</div>
+  <div class="bpts">
+    <div class="bpt"><strong>SFT on Vertex AI:</strong> Supervised fine-tuning adapts Gemini to your domain's style, terminology, and output format. Runs on Google's infrastructure — no GPU management required.</div>
+    <div class="bpt"><strong>Training data quality:</strong> 100 high-quality examples outperforms 10,000 noisy ones. Invest in data curation — clean, diverse, representative examples drive fine-tuning success.</div>
+    <div class="bpt"><strong>RAG vs fine-tune:</strong> RAG is better for facts (dynamic, updateable, no training cost). Fine-tuning is better for style and format (baked in, no retrieval latency). Most production systems use both.</div>
+    <div class="bpt"><strong>Model versioning:</strong> Fine-tuned model checkpoints are versioned in Vertex AI. Maintain parallel versions for A/B testing and rollback. Never overwrite the production model directly.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 8 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">📡</span><div><div class="ch-num">ADV.08</div><div class="ch-title">EVENT-DRIVEN AGENT ARCHITECTURE</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Trigger agents from events — async, scalable, decoupled</div>
+    <pre class="code"><span class="cc"># Pub/Sub triggered agent workflow</span>
+from google.cloud import pubsub_v1
+from google.cloud import run_v2
+
+<span class="cc"># Publisher: system event triggers agent</span>
+publisher = pubsub_v1.PublisherClient()
+publisher.publish(
+    topic="projects/proj/topics/agent-triggers",
+    data=json.dumps({
+        "trigger_type": "new_contract",
+        "document_uri": "gs://contracts/2026/q3/001.pdf",
+        "agent_id": "contract-review-agent",
+        "priority": "HIGH"
+    }).encode()
+)
+
+<span class="cc"># Subscriber: agent processes asynchronously</span>
+<span class="cc"># Cloud Run processes Pub/Sub push subscription</span>
+<span class="cc"># Scales to zero when idle, scales up automatically</span>
+
+<span class="cc"># Dead letter queue for failed agent tasks</span>
+dead_letter_topic = "projects/proj/topics/agent-dlq"
+<span class="cc"># Failed tasks → DLQ → alerting → human review</span></pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Event-driven patterns:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">
+      <span class="tag tg1">Pub/Sub triggers</span><span class="tag tg2">Eventarc (GCP events)</span>
+      <span class="tag tg3">Cloud Scheduler (cron)</span>
+      <span class="tag tg4">Webhook ingestion</span><span class="tag tgp">BigQuery row inserts</span>
+    </div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.08</div><div class="bttl">Event-Driven Agents</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Async architecture:</strong> Decouple agent execution from request-response cycles. Event-driven agents scale to zero when idle, handle bursty workloads, and eliminate synchronous timeouts for long tasks.</div>
+    <div class="bpt"><strong>Eventarc integration:</strong> Subscribe agents to Google Cloud events — new BigQuery rows, Cloud Storage uploads, Firestore updates, Cloud Audit Log events. Agents react to data changes automatically.</div>
+    <div class="bpt"><strong>Dead letter queues:</strong> All production agent task queues must have DLQ configuration. Failed tasks land in DLQ for investigation rather than silently disappearing. Alert on DLQ depth.</div>
+    <div class="bpt"><strong>Idempotency:</strong> Design agent tasks to be idempotent — running the same task twice produces the same result. Critical for retry logic and exactly-once processing guarantees.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 9 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🔎</span><div><div class="ch-num">ADV.09</div><div class="ch-title">OBSERVABILITY AND DEBUGGING AGENTS</div></div></div>
+  <div class="panel pl1">
+    <div class="narr">// Distributed tracing for multi-agent workflows</div>
+    <pre class="code"><span class="cc"># OpenTelemetry + Cloud Trace for agent spans</span>
+from opentelemetry import trace
+from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+
+tracer = trace.get_tracer("gemini-agent")
+
+class TracedAgent(Agent):
+    def run(self, task: str) -> AgentResult:
+        with tracer.start_as_current_span("agent.run") as span:
+            span.set_attribute("agent.name", self.name)
+            span.set_attribute("task.length", len(task))
+            
+            for tool_call in self.tool_calls:
+                with tracer.start_as_current_span("tool.call"):
+                    span.set_attribute("tool.name", tool_call.name)
+                    result = tool_call.execute()
+                    span.set_attribute("tool.tokens", result.tokens)
+            
+            span.set_attribute("total.tokens", self.total_tokens)
+            span.set_attribute("task.completed", True)
+            return self.result</pre>
+  </div>
+  <div class="panel pl3">
+    <div class="narr">// Key metrics to instrument:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">
+      <span class="tag tg1">task_completion_rate</span><span class="tag tg2">tokens_per_task</span>
+      <span class="tag tg3">tool_call_latency_p99</span><span class="tag tg4">hallucination_rate</span>
+      <span class="tag tgp">human_escalation_rate</span><span class="tag tg1">cost_per_task</span>
+    </div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.09</div><div class="bttl">Observability</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Distributed tracing:</strong> Multi-agent workflows span multiple services. OpenTelemetry + Cloud Trace creates a complete trace from user request through all agent and tool calls — essential for debugging.</div>
+    <div class="bpt"><strong>Token budgeting:</strong> Set max_output_tokens and monitor actual token usage per task. Token cost is your primary cost driver — identify inefficient agents and optimise prompts systematically.</div>
+    <div class="bpt"><strong>SLO definition:</strong> Define SLOs for each agent: task_completion_rate > 99%, p99_latency < 30s, cost_per_task < $0.05. Cloud Monitoring SLO features track against these automatically.</div>
+    <div class="bpt"><strong>Prompt debugging:</strong> Log every prompt sent to the model (in a separate, access-controlled log sink). Enables root cause analysis when agents behave unexpectedly in production.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 10 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">⚡</span><div><div class="ch-num">ADV.10</div><div class="ch-title">PERFORMANCE OPTIMISATION AT SCALE</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Optimisation techniques for high-throughput enterprise agents</div>
+    <pre class="code"><span class="cc"># 1. Context caching — reuse expensive context</span>
+from google.generativeai import caching
+import datetime
+
+cache = caching.CachedContent.create(
+    model="gemini-3.5-flash-001",
+    system_instruction=LARGE_SYSTEM_PROMPT,  <span class="cc"># 50k tokens</span>
+    contents=[KNOWLEDGE_BASE_DOCS],           <span class="cc"># 200k tokens</span>
+    ttl=datetime.timedelta(hours=24),
+)
+<span class="cc"># 250k tokens cached → $0 after first call per hour</span>
+<span class="cc"># vs $18.75 per call without caching</span>
+
+<span class="cc"># 2. Batch API for non-real-time workloads</span>
+batch_request = create_batch_prediction_job(
+    model="gemini-3.5-flash",
+    input_uri="gs://bucket/tasks.jsonl",
+    output_uri="gs://bucket/results/",
+)
+<span class="cc"># 50% cost reduction, 24h SLA</span>
+
+<span class="cc"># 3. Streaming for perceived performance</span>
+for chunk in agent.run_stream(task):
+    yield chunk  <span class="cc"># First token in ~300ms vs 5s wait</span></pre>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.10</div><div class="bttl">Performance Optimisation</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Context caching ROI:</strong> If your agent uses a 200k token knowledge base on every request, caching saves $18.75 per call (at $0.075/M tokens). At 1000 calls/day, that is $18,750/day saved.</div>
+    <div class="bpt"><strong>Batch API for overnight jobs:</strong> All reporting, analysis, and document processing that doesn't need real-time results should use the Batch API. 50% cost reduction with 24-hour SLA.</div>
+    <div class="bpt"><strong>Streaming UX:</strong> Stream agent responses token-by-token. Users perceive streaming as much faster even when total latency is identical. First token in 300ms vs 5s wait feels dramatically different.</div>
+    <div class="bpt"><strong>Parallel tool calls:</strong> Audit agent tool call patterns. Replace sequential tool calls with parallel execution wherever tools don't depend on each other. Reduces total latency proportionally.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 11 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🏛️</span><div><div class="ch-num">ADV.11</div><div class="ch-title">ENTERPRISE GOVERNANCE AT SCALE</div></div></div>
+  <div class="panel plp">
+    <div class="narr">// Agent lifecycle governance — from development to production</div>
+    <pre class="code"><span class="cc"># Agent approval workflow — policy as code</span>
+class AgentApprovalPolicy:
+    RISK_THRESHOLDS = {
+        "LOW":    {"auto_approve": True,  "prod_deploy": True},
+        "MEDIUM": {"auto_approve": False, "review_team": "security"},
+        "HIGH":   {"auto_approve": False, "review_team": "exec+legal"},
+        "CRITICAL": {"prohibited": True}
+    }
+    
+    def evaluate(self, agent_card: AgentCard) -> Decision:
+        risk = self.assess_risk(agent_card)
+        if risk == "CRITICAL":
+            return Decision.BLOCKED
+        if risk in ["HIGH", "MEDIUM"]:
+            return Decision.REQUIRES_REVIEW(
+                team=self.RISK_THRESHOLDS[risk]["review_team"]
+            )
+        return Decision.AUTO_APPROVED</pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Compliance controls for regulated industries:</div>
+    <table class="tbl">
+      <tr><th>REGULATION</th><th>CONTROL</th><th>GEMINI FEATURE</th></tr>
+      <tr><td>GDPR/NDPA</td><td>Data residency + deletion</td><td>Regional endpoints + CMEK</td></tr>
+      <tr><td>SOX</td><td>Audit trail for financial AI</td><td>Immutable audit logs</td></tr>
+      <tr><td>HIPAA</td><td>PHI handling controls</td><td>BAA + VPC-SC + DLP</td></tr>
+      <tr><td>PCI-DSS</td><td>Cardholder data isolation</td><td>VPC-SC perimeter</td></tr>
+    </table>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.11</div><div class="bttl">Enterprise Governance</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Policy as code:</strong> Encode agent approval policies as code — version-controlled, auditable, and automatically enforced. Risk assessment based on: data access scope, external integrations, action reversibility.</div>
+    <div class="bpt"><strong>NDPA compliance:</strong> Nigeria Data Protection Act requires lawful basis for processing, data subject rights, and breach notification. Configure Gemini Enterprise data residency to EU or specified regions for NDPA compliance.</div>
+    <div class="bpt"><strong>Immutable audit logs:</strong> Configure Cloud Logging with WORM (Write Once Read Many) retention policies. Audit logs for financial AI systems must be immutable for SOX compliance.</div>
+    <div class="bpt"><strong>Agent retirement:</strong> Define deprecation policies for agents. When retiring an agent, preserve audit logs, notify dependent systems, and maintain read-only access to historical records.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 12 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🤝</span><div><div class="ch-num">ADV.12</div><div class="ch-title">A2A PROTOCOL — INTER-AGENT COMMUNICATION</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Agent-to-Agent (A2A) protocol — Google's open standard for agent interop</div>
+    <pre class="code"><span class="cc"># A2A protocol — discover and call remote agents</span>
+<span class="cc"># Each agent exposes an Agent Card (/.well-known/agent.json)</span>
+
+agent_card = {
+    "name": "contract-review-agent",
+    "description": "Reviews legal contracts",
+    "url": "https://agents.company.com/contract-review",
+    "version": "2.1.0",
+    "capabilities": {
+        "streaming": True,
+        "pushNotifications": True,
+        "stateTransitionHistory": True
+    },
+    "skills": [{
+        "id": "review_contract",
+        "description": "Reviews contract for non-standard terms",
+        "inputModes": ["application/pdf"],
+        "outputModes": ["application/json"]
+    }]
+}
+
+<span class="cc"># A2A client — call any A2A-compliant agent</span>
+client = A2AClient("https://agents.company.com/contract-review")
+task = await client.send_task({
+    "skill": "review_contract",
+    "input": {"pdf_uri": "gs://contracts/new.pdf"}
+})</pre>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.12</div><div class="bttl">A2A Protocol</div>
+  <div class="bpts">
+    <div class="bpt"><strong>A2A open standard:</strong> Google-initiated open protocol for agent interoperability. Any A2A-compliant agent — regardless of which platform built it — can communicate with any other A2A agent.</div>
+    <div class="bpt"><strong>Agent discovery:</strong> Agents publish their capabilities in a well-known URL (/.well-known/agent.json). Orchestrators discover available agents programmatically without hardcoded configurations.</div>
+    <div class="bpt"><strong>Multi-vendor agents:</strong> A2A enables Gemini Enterprise agents to call agents built on Azure AI, AWS Bedrock, or any A2A-compliant platform. Avoids vendor lock-in at the agent layer.</div>
+    <div class="bpt"><strong>MCP complement:</strong> A2A handles agent-to-agent communication; Model Context Protocol (MCP) handles model-to-tool communication. Both together form a complete inter-operability stack.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 13 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🔬</span><div><div class="ch-num">ADV.13</div><div class="ch-title">GEMINI OMNI — PRODUCTION ARCHITECTURE</div></div></div>
+  <div class="panel pl3">
+    <div class="narr">// Deploying Gemini Omni for real-time multimodal workflows</div>
+    <pre class="code"><span class="cc"># Real-time audio/video processing with Omni</span>
+from google.genai.live import AsyncSession
+
+async def process_meeting_stream(audio_stream):
+    async with AsyncSession(
+        model="gemini-omni-preview",
+        config={
+            "response_modalities": ["TEXT"],
+            "speech_config": {"language_code": "en-NG"},
+            "system_instruction": """
+                You are a meeting assistant for a Lagos fintech company.
+                Extract: action items, decisions, owners, deadlines.
+                Output structured JSON after each complete utterance.
+            """
+        }
+    ) as session:
+        async for audio_chunk in audio_stream:
+            await session.send(audio_chunk)
+            response = await session.receive()
+            if response.is_complete_utterance:
+                yield extract_action_items(response.text)
+
+<span class="cc"># Latency: first response ~400ms from audio input</span>
+<span class="cc"># Multilingual: NG English, Pidgin, code-switching</span></pre>
+  </div>
+  <div class="panel pl1">
+    <div class="narr">// Omni production constraints to architect around:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">
+      <span class="tag tg4">Higher cost than Flash (~8-10x)</span>
+      <span class="tag tg3">Preview SLAs only (Q2 2026)</span>
+      <span class="tag tg1">Streaming required for audio/video</span>
+      <span class="tag tg2">Best for async processing pipelines</span>
+    </div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.13</div><div class="bttl">Gemini Omni Production</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Live API:</strong> Omni's AsyncSession enables real-time bidirectional audio/video streams. Unlike batch processing, the model processes audio incrementally — enabling sub-second response latency.</div>
+    <div class="bpt"><strong>Code-switching support:</strong> Gemini Omni handles Nigerian English and code-switching (mixing English with Yoruba, Hausa, Pidgin) better than models trained purely on standard English corpora.</div>
+    <div class="bpt"><strong>Cost architecture:</strong> Omni is ~8-10x more expensive than Flash. Architect a classifier layer that routes to Flash for standard text tasks and Omni only for genuinely multimodal inputs.</div>
+    <div class="bpt"><strong>Hybrid pipeline:</strong> Use Omni for transcription and understanding, Flash for subsequent analysis and reporting. Minimises Omni usage while preserving its unique multimodal capabilities.</div>
+  </div>
+</div></div>
+</div></div>
+
+<!-- PAGE 14 -->
+<div class="page"><div class="page-inner">
+<div class="page-front"><div class="comic-page">
+  <div class="ch-header"><span class="ch-icon">🗺️</span><div><div class="ch-num">ADV.14</div><div class="ch-title">PRODUCTION READINESS CHECKLIST</div></div></div>
+  <div class="panel pl2">
+    <div class="narr">// Complete production readiness framework</div>
+    <pre class="code"><span class="cc">// SECURITY</span>
+<span class="cg">✓</span> Workload Identity Federation (no key files)
+<span class="cg">✓</span> VPC Service Controls perimeter configured
+<span class="cg">✓</span> CMEK encryption keys provisioned
+<span class="cg">✓</span> DLP output filtering enabled
+<span class="cg">✓</span> IAM least-privilege per-agent service accounts
+
+<span class="cc">// GOVERNANCE</span>
+<span class="cg">✓</span> Agent registered in Agent Registry
+<span class="cg">✓</span> Risk classification documented
+<span class="cg">✓</span> Human-in-the-loop thresholds configured
+<span class="cg">✓</span> Immutable audit logs enabled (90-day retention)
+<span class="cg">✓</span> Approval workflow completed per risk level
+
+<span class="cc">// RELIABILITY</span>
+<span class="cg">✓</span> Eval suite passing (groundedness >0.85)
+<span class="cg">✓</span> SLOs defined and monitoring active
+<span class="cg">✓</span> Dead letter queue configured
+<span class="cg">✓</span> Runbook documented for common failures
+<span class="cg">✓</span> Rollback procedure tested
+
+<span class="cc">// COST</span>
+<span class="cg">✓</span> Context caching implemented where applicable
+<span class="cg">✓</span> Budget alerts configured
+<span class="cg">✓</span> Token usage baseline established</pre>
+  </div>
+  <div class="panel" style="text-align:center;padding:12px;background:rgba(66,133,244,0.03);">
+    <div style="font-family:'Exo 2',sans-serif;font-size:0.82rem;font-weight:900;
+      background:linear-gradient(135deg,#4285F4,#0F9D58,#F4B400,#DB4437);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;">
+      PRODUCTION READY
+    </div>
+    <div style="font-size:0.62rem;color:var(--dim);margin-top:5px;">Gemini Enterprise Advanced · By Gbemisola Esho · GDE · 2026</div>
+  </div>
+</div></div>
+<div class="page-back"><div class="back-content">
+  <div class="bch">ADV.14</div><div class="bttl">Production Readiness</div>
+  <div class="bpts">
+    <div class="bpt"><strong>Security non-negotiables:</strong> Workload Identity Federation, VPC-SC perimeter, and CMEK are the three security controls that must be in place before any production data touches a Gemini agent.</div>
+    <div class="bpt"><strong>Eval gates:</strong> Never deploy an agent to production without a passing eval suite. Define minimum thresholds for groundedness, instruction following, and domain-specific accuracy metrics.</div>
+    <div class="bpt"><strong>Runbooks:</strong> Document the failure modes for each agent and the human response procedure. Agents will fail — the question is whether your team knows what to do when they do.</div>
+    <div class="bpt"><strong>Continuous improvement loop:</strong> Production logs → eval dataset augmentation → model re-evaluation → staged rollout → repeat. Build this loop before you need it, not after the first incident.</div>
+  </div>
+</div></div>
+</div></div>
+
+</div></div>
+<div class="controls">
+  <button class="btn bn" id="btnPrev" onclick="nav(-1)" disabled>◀ PREV</button>
+  <button class="btn bf" onclick="flip()">⟳ FLIP</button>
+  <button class="btn bt" onclick="openTOC()">≡ IDX</button>
+  <button class="btn bn" id="btnNext" onclick="nav(1)">NEXT ▶</button>
+</div>
+<p class="hint">// flip → deep-dive notes · ←→ navigate · space → flip</p>
+<div class="modal-overlay" id="tocModal" onclick="closeTOC(event)">
+  <div class="modal">
+    <h2>// ADV MODULE INDEX</h2>
+    <div id="tocList"></div>
+    <button class="mc" onclick="document.getElementById('tocModal').classList.remove('open')">[ CLOSE ]</button>
+  </div>
+</div>
+<div class="footer">// GEMINI ENTERPRISE ADVANCED ARCHITECTURE · GBEMISOLA ESHO · GDE · 2026 · ADVANCED</div>
+<script>
+const CH=[
+  {n:"ADV.01",t:"Production Architecture"},{n:"ADV.02",t:"Advanced ADK Patterns"},
+  {n:"ADV.03",t:"Zero Trust Security"},{n:"ADV.04",t:"Advanced RAG Architectures"},
+  {n:"ADV.05",t:"LLMOps & Evaluation"},{n:"ADV.06",t:"Multi-Region & HA"},
+  {n:"ADV.07",t:"Fine-Tuning & Custom Models"},{n:"ADV.08",t:"Event-Driven Architecture"},
+  {n:"ADV.09",t:"Observability & Debugging"},{n:"ADV.10",t:"Performance Optimisation"},
+  {n:"ADV.11",t:"Enterprise Governance at Scale"},{n:"ADV.12",t:"A2A Protocol"},
+  {n:"ADV.13",t:"Gemini Omni Production"},{n:"ADV.14",t:"Production Readiness Checklist"},
+];
+let cur=0;const tot=14;
+const allP=document.querySelectorAll('.page');
+function ui(){
+  allP.forEach((p,i)=>p.classList.toggle('active',i===cur));
+  document.getElementById('btnPrev').disabled=cur===0;
+  document.getElementById('btnNext').disabled=cur===tot-1;
+  document.getElementById('pFill').style.width=((cur+1)/tot*100)+'%';
+  document.getElementById('pTxt').textContent=String(cur+1).padStart(2,'0')+'/'+String(tot).padStart(2,'0');
+  const inn=allP[cur].querySelector('.page-inner');
+  if(inn)inn.classList.remove('flipped');
+}
+function nav(d){const n=cur+d;if(n>=0&&n<tot){cur=n;ui();}}
+function flip(){const inn=allP[cur].querySelector('.page-inner');if(inn)inn.classList.toggle('flipped');}
+function openTOC(){
+  document.getElementById('tocList').innerHTML=CH.map((c,i)=>`
+    <div class="ti" onclick="goto(${i})">
+      <div class="tn">${String(i+1).padStart(2,'0')}</div>
+      <div><div class="tc">${c.n}</div><div class="ts">${c.t}</div></div>
+    </div>`).join('');
+  document.getElementById('tocModal').classList.add('open');
+}
+function closeTOC(e){if(!e||e.target===document.getElementById('tocModal'))document.getElementById('tocModal').classList.remove('open');}
+function goto(i){cur=i;ui();document.getElementById('tocModal').classList.remove('open');}
+let sx=0;
+document.getElementById('book').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;});
+document.getElementById('book').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)nav(dx<0?1:-1);});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')nav(1);if(e.key==='ArrowLeft')nav(-1);if(e.key===' '){e.preventDefault();flip();}});
+ui();
+</script>
+</body>
+</html>
