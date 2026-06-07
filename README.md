@@ -1,9 +1,6 @@
 # 🤖 GEMINI ENTERPRISE — ADVANCED
 ### Interactive Comic by Gbemisola Esho
 
-<p align="center">
-  <img src="afralo_logo.jpeg" alt="AFRALO ICANN At-Large" height="80"/>
-</p>
 
 <p align="center">
   <a href="https://Apinke.github.io/gemini-enterprise-advanced/"><strong>▶ Read the Live Comic</strong></a> &nbsp;·&nbsp;
