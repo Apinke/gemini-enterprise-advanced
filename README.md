@@ -69,6 +69,6 @@ Licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) — free
 ## 👩🏾‍💻 About the Author
 
 **Gbemisola Esho** — Google Developer Expert (GDE), WTM Ambassador, founder of [Connectobridge](https://connectobridge.com).
-*Produced in association with AFRALO / ICANN At-Large.*
 
-<p align="center"><img src="afralo_logo.jpeg" alt="AFRALO" height="50"/></p>
+
+
